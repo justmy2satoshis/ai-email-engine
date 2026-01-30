@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.api import sync, emails, classifications, proposals, pipeline
+from app.api import sync, emails, classifications, proposals, pipeline, content_bridge as content_bridge_api
 from app.services.imap_sync import imap_sync
 from app.services.classifier import email_classifier
 
@@ -117,7 +117,7 @@ app = FastAPI(
 # CORS — allow frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3100", "http://127.0.0.1:3100"],
+    allow_origins=["http://localhost:3110", "http://127.0.0.1:3110"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -129,6 +129,7 @@ app.include_router(emails.router)
 app.include_router(classifications.router)
 app.include_router(proposals.router)
 app.include_router(pipeline.router)
+app.include_router(content_bridge_api.router)
 
 
 @app.get("/")
