@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.api import sync, emails, classifications
+from app.api import sync, emails, classifications, proposals
 from app.services.imap_sync import imap_sync
 from app.services.classifier import email_classifier
 
@@ -127,6 +127,7 @@ app.add_middleware(
 app.include_router(sync.router)
 app.include_router(emails.router)
 app.include_router(classifications.router)
+app.include_router(proposals.router)
 
 
 @app.get("/")
