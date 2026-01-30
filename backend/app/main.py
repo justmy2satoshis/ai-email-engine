@@ -9,8 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.api import sync, emails
+from app.api import sync, emails, classifications
 from app.services.imap_sync import imap_sync
+from app.services.classifier import email_classifier
 
 # Logging
 logging.basicConfig(
@@ -101,6 +102,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
     await imap_sync.disconnect()
+    await email_classifier.close()
     logger.info("Shutdown complete")
 
 
@@ -124,6 +126,7 @@ app.add_middleware(
 # Register routers
 app.include_router(sync.router)
 app.include_router(emails.router)
+app.include_router(classifications.router)
 
 
 @app.get("/")
