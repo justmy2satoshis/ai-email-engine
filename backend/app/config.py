@@ -42,7 +42,10 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8400
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    # Frontend
+    frontend_port: int = 3100
+
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()

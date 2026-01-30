@@ -101,20 +101,27 @@ class IMAPSyncService:
             return []
 
         try:
-            response = await self._client.list()
+            response = await self._client.list('""', '*')
             if response.result != "OK":
                 return []
 
             folders = []
             for line in response.lines:
                 line_str = line if isinstance(line, str) else line.decode("utf-8", errors="replace")
-                if line_str:
-                    # Parse IMAP LIST response: (\Flags) "delimiter" "folder_name"
-                    parts = line_str.rsplit('"', 2)
-                    if len(parts) >= 2:
-                        folder_name = parts[-1].strip().strip('"')
-                        if folder_name:
-                            folders.append(folder_name)
+                if not line_str or line_str.strip() == ')':
+                    continue
+                # Parse IMAP LIST response: (\Flags) "/" "folder_name"
+                import re
+                match = re.search(r'"[^"]*"\s+"?([^"]+)"?\s*$', line_str)
+                if match:
+                    folder_name = match.group(1).strip()
+                    if folder_name:
+                        folders.append(folder_name)
+                else:
+                    # Fallback: try splitting by delimiter
+                    parts = line_str.split('"')
+                    if len(parts) >= 5:
+                        folders.append(parts[-2].strip())
             return folders
         except Exception as e:
             logger.error(f"Failed to list folders: {e}")
@@ -244,19 +251,25 @@ class IMAPSyncService:
                 logger.warning(f"Failed to fetch UID {uid}: {response.lines}")
                 return None
 
-            # Parse response — aioimaplib returns data in response.lines
+            # Parse response — aioimaplib returns:
+            #   line 0: metadata string with flags info
+            #   line 1: bytearray with raw email data
+            #   line 2+: completion info
             raw_data = None
             flags = ()
 
             for item in response.lines:
-                if isinstance(item, bytes):
-                    raw_data = item
-                elif isinstance(item, str) and "FLAGS" in item:
-                    # Extract flags from the response
-                    import re
-                    flags_match = re.search(r'FLAGS \(([^)]*)\)', item)
-                    if flags_match:
-                        flags = tuple(f.encode() for f in flags_match.group(1).split())
+                if isinstance(item, (bytearray, bytes)) and len(item) > 200:
+                    # This is the email body (bytearrays from aioimaplib, large)
+                    raw_data = bytes(item)
+                elif isinstance(item, (str, bytes)):
+                    # Check for flags in metadata lines
+                    item_str = item if isinstance(item, str) else item.decode("utf-8", errors="replace")
+                    if "FLAGS" in item_str:
+                        import re
+                        flags_match = re.search(r'FLAGS \(([^)]*)\)', item_str)
+                        if flags_match:
+                            flags = tuple(f.encode() for f in flags_match.group(1).split())
 
             if raw_data is None:
                 logger.warning(f"No message data for UID {uid}")
