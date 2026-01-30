@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # API
     api_host: str = "0.0.0.0"
-    api_port: int = 8400
+    api_port: int = 8410
 
     # Frontend
     frontend_port: int = 3100
